@@ -1,0 +1,13 @@
+services:
+  # May need to run:
+  # sudo xhost +local:docker
+  cartpole-sarsa:
+    build:
+      context: ./
+      dockerfile: ./docker/Dockerfile
+    volumes:
+    - ./src:/app
+    - /tmp/.X11-unix:/tmp/.X11-unix
+    environment:
+    - DISPLAY=$DISPLAY
+    image: cartpole-sarsa
