@@ -1,6 +1,6 @@
 FROM python:3-bookworm
 
-RUN pip install "gymnasium[classic-control]==1.2.0"
+RUN pip install "gymnasium[classic-control]==1.2.0" "Pillow==11.3.0"
 
 WORKDIR /app
 
