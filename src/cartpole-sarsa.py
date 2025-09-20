@@ -2,6 +2,13 @@ import gymnasium as gym
 import numpy as np
 import math
 from random import random
+from PIL import Image
+
+# Environment and success criteria (when the model achieves this average reward,
+# training is done).
+GYM_ENV = "CartPole-v1"
+MEAN_REWARD_EPISODES = 100
+MEAN_REWARD_TARGET = 495
 
 # A state s (a.k.a. observation) has cart position, cart velocity, pole angle,
 # and pole angular velocity.
@@ -38,12 +45,11 @@ E_DECAY = .75
 # (myopic).
 DISCOUNT = .99
 
-# When the model achieves this average reward, training is done.
-MEAN_REWARD_EPISODES = 100
-MEAN_REWARD_TARGET = 495
-
 # Number of episodes to run to show off the model after training is done.
 TEST_EPISODES = 10
+
+# When rendering an episode to a GIF, every Nth screen is rendered.
+RENDER_SCREEN_FREQ = 4
 
 """
 Train, filling out the quality table.
@@ -110,10 +116,15 @@ def test(env, q):
     s, _ = env.reset()
     s = make_discrete_state(s)
 
+    step = 0
     episode_over = False
     total_reward = 0
 
+    images = [Image.fromarray(env.render())]
+
     while not episode_over:
+      step += 1
+
       a = np.argmax(q[s])
       s, r, terminated, truncated, _ = env.step(a)
       s = make_discrete_state(s)
@@ -121,7 +132,19 @@ def test(env, q):
       total_reward += r
       episode_over = terminated or truncated
 
-    print(f"Episode {episode} finished with total reward: {total_reward}.")
+      if step % RENDER_SCREEN_FREQ == 0:
+        images.append(Image.fromarray(env.render()))
+
+    # Save the rendered images to an animated GIF.
+    image_file = f"../data/{GYM_ENV}-episode-{episode:02}.gif"
+    images[0].save(
+      image_file,
+      save_all=True,
+      append_images=images[1:],
+      loop=0,
+      duration=1
+    )
+    print(f"Rendered episode {episode} to {image_file}. Reward: {total_reward}")
 
 """
 Clamp val to range [val_min, val_max].
@@ -169,7 +192,7 @@ def get_action(state, episode, q):
   return action
 
 if __name__ == '__main__':
-  env = gym.make("CartPole-v1")
+  env = gym.make(GYM_ENV, render_mode="rgb_array")
 
   # The "quality table", q.  A state, made discrete, indexes into an array of
   # size env.action_space.n predicted rewards.  I.e. given a state s, q[s] is
@@ -183,9 +206,7 @@ if __name__ == '__main__':
   ))
 
   train(env, q)
-  env.close()
 
-  # New env with human rendering for testing the result.
-  env = gym.make("CartPole-v1", render_mode="human")
+  # Test the trained model, rendering to an animated GIF.
   test(env, q)
   env.close()
